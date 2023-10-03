@@ -7,16 +7,15 @@ const bodyParser = require('body-parser')
 const path = require("path");
 const cookieParser = require("cookie-parser");
 const ConnectDb = require("./config/database");
-const User = require('../modals/executive');
+const User = require('./modals/executive');
 const bcrypt = require('bcrypt');
 const { RegisterUser, login, logout, markAttendance } = require('./controllers/userController');
 const { protect } = require('./middleware/auth');
 const { createClient, followUp, updateClientReport, GetClientByMobileNumber, downloadClientData, downloadAttendance } = require('./controllers/clientController');
 
-const sendMail = require('../utility/sendMail');
+const sendMail = require('./utility/sendMail');
 const configPath = path.resolve(__dirname, "config", "config.env");
 dotenv.config({ path: configPath });
-
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader(
