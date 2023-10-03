@@ -2,7 +2,7 @@ const sendToken = (user, statusCode, res) => {
   const token = user.getJwtToken();
 
   // Convert process.env.JWT_Expires to days and create a Date object
-  const expirationInHours = parseInt(process.env.JWT_EXPIRES_IN|| 4d); // Parse as an integer
+  const expirationInHours = parseInt(process.env.JWT_EXPIRES_IN|| '4d'); 
   console.log(expirationInHours);
   const expirationTime = new Date(Date.now() + expirationInHours * 60 * 60 * 1000); // Convert hours to milliseconds
 
