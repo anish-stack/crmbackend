@@ -45,13 +45,11 @@ app.get("/", (req, res) => {
 });
 
 
-// Create a router for API endpoints
-const route = express.Router();
 
 // Define your routes here
-route.post('/Register', RegisterUser);
+app.post('/Register', RegisterUser);
 
-route.post('/activate', async (req, res) => {
+app.post('/activate', async (req, res) => {
   try {
     const { email, otp } = req.body;
 
@@ -84,15 +82,15 @@ route.post('/activate', async (req, res) => {
     res.status(500).json({ error: "An error occurred" });
   }
 });
-route.post('/login', login);
-route.post('/logout', protect, logout);
-route.post('/mark-attendance', markAttendance);
-route.post('/create-client', protect, createClient);
-route.get('/follow-up-clients', protect, followUp);
-route.post('/Change-ClientDetails', protect, updateClientReport);
-route.post('/getClientByNumber', GetClientByMobileNumber);
-route.get('/Download-client-data', downloadClientData);
-route.get('/download-attendance', downloadAttendance);
+app.post('/login', login);
+app.post('/logout', protect, logout);
+app.post('/mark-attendance', markAttendance);
+app.post('/create-client', protect, createClient);
+app.get('/follow-up-clients', protect, followUp);
+app.post('/Change-ClientDetails', protect, updateClientReport);
+app.post('/getClientByNumber', GetClientByMobileNumber);
+app.get('/Download-client-data', downloadClientData);
+app.get('/download-attendance', downloadAttendance);
 
 // Start the Express server
 app.listen(PORT, () => {
