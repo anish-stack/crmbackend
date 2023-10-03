@@ -16,7 +16,7 @@ exports.protect = async (req, res, next) => {
   
       try {
         // Verify the token
-        const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = await jwt.verify(token, "uyuiyWJDBHJSGHJBSHJKDGSJKBCSKFDDSYUKDGHK");
         req.user = decoded; // Attach the decoded user information to the request object
         next(); // Continue to the next middleware
       } catch (error) {
