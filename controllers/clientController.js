@@ -161,14 +161,10 @@ exports.followUp = catchAsyncErrors(async (req, res) => {
 exports.updateClientReport = catchAsyncErrors(async (req, res) => {
   //console.log(req.body)
   let { mobileNumber, newCustomerRequirements, discounts, followUp, messageSend, package } = req.body;
-  mobileNumber = mobileNumber.replace(/\D/g, '');
+ 
   let updatemobileNumber = mobileNumber; // Declare updatemobileNumber variable here
 
-  // Check if the mobile number starts with "+91", if not, prepend it
-  if (!mobileNumber.startsWith('91')) {
-    updatemobileNumber = '+91' + mobileNumber;
-    //console.log(updatemobileNumber);
-  }
+
 
   try {
     // Find the client by mobile number
@@ -226,15 +222,9 @@ exports.GetClientByMobileNumber = catchAsyncErrors(async (req, res) => {
     let { mobileNumber } = req.body;
     //console.log(mobileNumber)
     // Remove any non-digit characters from the mobile number
-    mobileNumber = mobileNumber.replace(/\D/g, '');
 
     let updatemobileNumber = mobileNumber; // Declare updatemobileNumber variable here
 
-    // Check if the mobile number starts with "+91", if not, prepend it
-    if (!mobileNumber.startsWith('91')) {
-      updatemobileNumber = '+91' + mobileNumber;
-      //console.log(updatemobileNumber)
-    }
 
     // Check if the mobile number is linked with any client
     const client = await Client.findOne({ mobileNumber: updatemobileNumber });
