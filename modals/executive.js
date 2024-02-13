@@ -16,20 +16,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
-  confirmPassword: {
-    type: String,
-  },
-  isActivated:{
-    type:Boolean
-  },
+
+ 
   token: {
     type: String,
   },
 
-
-  otp:{
-    type: String
-  },
   role: {
     type: String,
     enum: ['executive', 'headOfTeam'], 
@@ -39,13 +31,7 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false, 
   },
-  resetPasswordOtp: {
-    type: Number,
-  },
-  resetPasswordOtpExpire: {
-    type: Date,
-    default: Date.now(),
-  },
+
 });
 
 // Define a pre-save hook to hash the password before saving it to the database

@@ -1,6 +1,6 @@
 const mongodb = require('mongoose')
 require('dotenv').config()
-const URL = process.env.MONGO_DB_URL || "mongodb+srv://anishjha896:c3DfmZv9BM3lE3i2@cluster0.8kxz57r.mongodb.net/?retryWrites=true&w=majority"
+const URL = process.env.MONGO_DB_URL || "mongodb+srv://happycoding41:mY44g7XhnfZnOGD7@cluster0.w1qwdze.mongodb.net/?retryWrites=true&w=majority"
 
 
 const ConnectDb = async()=>{

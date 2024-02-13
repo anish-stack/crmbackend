@@ -27,7 +27,7 @@ const sendErrorResponse = (res, error) => {
   
       for (const user of unactivatedUsers) {
         await user.remove();
-        console.log(`Deleted unactivated user with email: ${user.email}`);
+        //console.log(`Deleted unactivated user with email: ${user.email}`);
       }
     } catch (error) {
       console.error("Error deleting unactivated users:", error);

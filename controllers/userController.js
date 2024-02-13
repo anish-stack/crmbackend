@@ -14,50 +14,27 @@ const {
 const User = require("../modals/executive");
 
 exports.RegisterUser = catchAsyncErrors(async (req, res) => {
-  const { username, email, password, confirmPassword, role } = req.body;
+  const { username, email, password, role } = req.body;
 
-  const existingUser = await User.findOne({ email });
-
-  try {
-    if (existingUser) {
-      throw new ErrorHandler("User already exists with this Email Id", 400);
-    } else if (!username || !email || !password || !confirmPassword) {
-      throw new ErrorHandler("Please Fill All Fields", 422);
-    }
-
-    if (password !== confirmPassword) {
-      throw new ErrorHandler("Confirm Password Not Match", 422);
-    }
-
-    // Generate a random 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000);
-
-    // Hash the OTP before saving it
-    const otpHash = await bcrypt.hash(otp.toString(), 10);
-
+ try{
     const newUser = new User({
       username,
       email,
       password,
       role,
-      isActivated: false,
-      otp: otpHash,
+      isActivated: true,
+    
     });
 
     await newUser.save();
 
-    // Send the OTP via email
-    await sendMail({
-      email: newUser.email,
-      subject: "OTP for Account Activation",
-      message: `Welcome to DGMT! Your OTP for account activation is: ${otp}. Please use this code to complete your registration. Thank you for Joining DGMT.`,
-    });
+   
     res.status(201).json({
       message:
-        "User registered successfully. An OTP has been sent to your email for activation.",
+        "User registered successfully. ",
       newUser,
     });
-    console.log(newUser);
+    //console.log(newUser);
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({ error: "An error occurred" });
@@ -67,7 +44,30 @@ exports.RegisterUser = catchAsyncErrors(async (req, res) => {
 setInterval(deleteUnactivatedUsers, 20 * 60 * 1000);
 
 // login For User
+
+exports.checkuserLogin = catchAsyncErrors(async(req,res)=>{
+  try {
+    const token = req.cookies.token;
+
+   if(token === ' '){
+    return res.status(401).json({
+      success:false,
+      msg:"Please Login To Access this Route"
+    })
+   }
+
+   res.status(200).json({
+    success:true,
+    data:token
+  })
+
+  } catch (error) {
+    //console.log(req.error);
+  }
+})
+
 exports.login = catchAsyncErrors(async (req, res) => {
+  //console.log("i am hit")
   try {
     const { email, password } = req.body;
 
@@ -168,9 +168,9 @@ exports.markAttendance = catchAsyncErrors(async (req, res) => {
     // Check if user has already marked attendance 
     const existingAttendance = await attendanceSchema.findOne({
       employeeId: executive._id,
-   
+
     });
-      console.log(existingAttendance)
+    //console.log(existingAttendance)
     if (!existingAttendance) {
       // Create a new attendance record
       const newAttendance = new attendanceSchema({
@@ -178,10 +178,10 @@ exports.markAttendance = catchAsyncErrors(async (req, res) => {
         date: istTime,
         attendanceStatus: "Present", // You can adjust this as needed
       });
-      console.log('New attendance record created for', executive._id, 'on', istTime);
+      //console.log('New attendance record created for', executive._id, 'on', istTime);
       await newAttendance.save(); // Save the new attendance record
     } else {
-      console.log('Attendance for', executive._id, 'on', istTime, 'already marked.');
+      //console.log('Attendance for', executive._id, 'on', istTime, 'already marked.');
 
       return res
         .status(404)

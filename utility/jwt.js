@@ -3,12 +3,12 @@ const sendToken = (user, statusCode, res) => {
 
   // Set the expiration in hours (e.g., 96 hours for 4 days)
   const expirationInHours = 96;
-  console.log(expirationInHours);
+  //console.log(expirationInHours);
   const expirationTime = new Date(Date.now() + expirationInHours * 60 * 60 * 1000); // Convert hours to milliseconds
 
   const options = {
     expires: expirationTime,
-    httpOnly: false,
+    httpOnly: true,
     secure: true,
   };
 

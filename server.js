@@ -11,8 +11,8 @@ const User = require('./modals/executive');
 const bcrypt = require('bcrypt');
 const { RegisterUser, login, logout, markAttendance } = require('./controllers/userController');
 const { protect } = require('./middleware/auth');
-const { createClient, followUp, updateClientReport, GetClientByMobileNumber, downloadClientData, downloadAttendance } = require('./controllers/clientController');
-
+const { createClient, followUp, updateClientReport, GetClientByMobileNumber, downloadClientData, downloadAttendance, deleteClients } = require('./controllers/clientController');
+const UserRoutes = require('./routes/userRoutes');
 const sendMail = require('./utility/sendMail');
 const configPath = path.resolve(__dirname, "config", "config.env");
 dotenv.config({ path: configPath });
@@ -29,7 +29,12 @@ app.use((req, res, next) => {
   next();
 });
 // Set up CORS and other middleware
-app.use(cors());
+// http://localhost:5173/create-client
+app.use(cors({
+  // specify which origins are allowed to access the server
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
@@ -43,6 +48,7 @@ const PORT = process.env.PORT || 4000;
 app.get("/", (req, res) => {
   res.send("Hello World!");
 });
+app.use("/api",UserRoutes)
 
 
 
@@ -91,6 +97,7 @@ app.post('/Change-ClientDetails', protect, updateClientReport);
 app.post('/getClientByNumber', GetClientByMobileNumber);
 app.get('/Download-client-data', downloadClientData);
 app.get('/download-attendance', downloadAttendance);
+app.post('/delete-client/:id',deleteClients)
 
 // Start the Express server
 app.listen(PORT, () => {

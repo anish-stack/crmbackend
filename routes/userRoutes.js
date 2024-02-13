@@ -1,11 +1,12 @@
 const express = require('express');
-const { RegisterUser, login, logout, markAttendance } = require('../controllers/userController');
+const { RegisterUser, login, logout, markAttendance, checkuserLogin } = require('../controllers/userController');
 const route = express.Router();
 const User = require('../modals/executive')
 const bcrypt = require('bcrypt')
 const sendMail = require('../utility/sendMail');
 const { protect } = require('../middleware/auth');
-const { createClient, followUp, updateClientReport,GetClientByMobileNumber, downloadClientData,downloadAttendance } = require('../controllers/clientController');
+const { createClient, followUp, updateClientReport,GetClientByMobileNumber, downloadClientData,downloadAttendance,getClinetsByUserId, addComments, BlockClientById, ShowBlockClients } = require('../controllers/clientController');
+const { checkPrime } = require('crypto');
 
 route.post('/Register',RegisterUser)
 
@@ -44,13 +45,22 @@ route.post('/activate', async (req, res) => {
 });
 
 route.post('/login',login)
+route.get('/islogin',checkuserLogin)
+
 route.post('/logout',protect,logout)
 route.post('/mark-attendce',markAttendance)
 route.post('/create-client',protect,createClient)
+route.post('/add-comment',protect,addComments)
+route.post('/add-block/:id',BlockClientById)
+route.post('/submitById/:id',ShowBlockClients)
+
+
+
 route.get('/follow-up-clients',protect,followUp)
 route.post('/Change-ClientDetails',protect,updateClientReport)
 route.post('/getClientByNumber',GetClientByMobileNumber)
 route.get('/Download-client-data',downloadClientData)
 route.get('/download-Attendce',downloadAttendance)
+route.get('/get-clients-user-by',protect,getClinetsByUserId)
 
 module.exports = route;

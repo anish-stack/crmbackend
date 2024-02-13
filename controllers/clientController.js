@@ -4,7 +4,7 @@ const { catchAsyncErrors } = require('../utility/catchAsync');
 const path = require('path');
 const fs = require('fs');
 const moment = require('moment');
-
+const mongoose = require('mongoose');
 const Attendnce = require('../modals/attendence')
 const ExcelJS = require('exceljs');
 // Function to send an email with a PDF attachment
@@ -39,27 +39,11 @@ const sendPdfMail = async (email, pdfFileName, package, packagePDF) => {
 };
 //function to create a client by executive
 exports.createClient = catchAsyncErrors(async (req, res) => {
-  const userId = req.user.id; 
-    console.log(userId)
-  const {
-    name,
-    mobileNumber,
-    email,
-    businessWebsiteName,
-    package,
-    customerRequirements,
-    discounts,
-    followUp,
-    messageSend,
-    followUpDate
-  } = req.body;
-  console.log(req.body)
-  let pdfFileName = '';
-  let packagePDF = null;
-
+  const userid = req.user.id
+  const name = req.user.username
+  //console.log(req.user.username)
   try {
-    // Create a new client entry
-    const newClient = new Client({
+    const {
       name,
       mobileNumber,
       email,
@@ -69,60 +53,99 @@ exports.createClient = catchAsyncErrors(async (req, res) => {
       discounts,
       followUp,
       messageSend,
-      followUpDate,
-      submittedBy: userId
+      
+      followUpDate
+    } = req.body;
+
+    const client = new Client({
+      name,
+      mobileNumber,
+      email,
+      businessWebsiteName,
+      package,
+      customerRequirements,
+      discounts,
+      followUp,
+      messageSend,
+      submittedByName:name,
+      submittedBy:userid,
+      followUpDate
     });
 
-    // Save the client entry to the database
-    await newClient.save();
+    await client.save();
 
-    // // Check if messageSend is true and package is specified
-    if (messageSend && package) {
-      switch (package.toLowerCase()) {
-        case 'export-plan':
-          pdfFileName = '../pdf/Expot Plan. (1)_compressed.pdf';
-          break;
-        case 'gold-membership':
-          pdfFileName = '../pdf/Gold membership.,-1_compressed.pdf';
-          break;
-        case 'startup':
-          pdfFileName = '../pdf/Startup Package Final_compressed.pdf';
-          break;
-        default:
-          pdfFileName = null;
-          break;
-      }
-
-      if (pdfFileName) {
-        const pdfPath = path.join(__dirname, '../pdf', pdfFileName);
-        packagePDF = fs.readFileSync(pdfPath);
-      }
-
-      // Send the email with the PDF attachment, passing 'package' as an argument
-      await sendPdfMail(email, pdfFileName, package, packagePDF);
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Client created successfully.',
-      client: newClient,
-    });
+    res.status(201).json({ success: true, data: client });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal Server Error',
-    });
+    res.status(400).json({ success: false, error: error.message });
   }
 });
+
+exports.addComments = catchAsyncErrors(async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Validate that the user id is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, msg: 'Invalid user id' });
+    }
+
+    const submittedBy = new mongoose.Types.ObjectId(userId);
+    // //console.log(submittedBy)
+
+    const { id, customerRequirements } = req.body;
+    //console.log(req.body)
+    // Find the client by mobile number
+    const clientFind = await Client.findById(id);
+    //console.log(clientFind)
+    if (clientFind) {
+      let commentList = [];
+
+      // Checking whether the customerRequirements field is already present or not
+      if (!clientFind.customerRequirements) {
+        commentList = [{ ...customerRequirements }];
+      } else {
+        commentList = [...clientFind.customerRequirements, { ...customerRequirements }];
+      }
+
+      // Updating the client document with the added fields
+      const updatedClient = await Client.findByIdAndUpdate(clientFind._id, { customerRequirements: commentList, submittedBy }, { new: true });
+
+      //console.log('updatedClient', updatedClient);
+
+      // Save the updated document to the database
+      await updatedClient.save();
+
+      res.status(200).json({ success: true, data: "Comment Added Successfully" });
+    } else {
+      res.status(404).json({ success: false, msg: 'No User Found' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, msg: 'Internal Server Error' });
+  }
+});
+
 
 // Function to get follow-up clients
 exports.followUp = catchAsyncErrors(async (req, res) => {
   try {
-    const FollowUpClients = await Client.find({ followUp: true });
+    const userId = req.user.id;
+
+    // Find clients submitted by the current user and marked for follow-up
+    const followUpClients = await Client.find({ submittedBy: userId, followUp: true });
+
+    // If no follow-up clients are found, return a 404 response
+    if (followUpClients.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No follow-up clients found for the given user ID.',
+      });
+    }
+
+    // If follow-up clients are found, return them in the response
     res.status(200).json({
       success: true,
-      data: FollowUpClients,
+      data: followUpClients,
     });
   } catch (error) {
     console.error(error);
@@ -133,13 +156,23 @@ exports.followUp = catchAsyncErrors(async (req, res) => {
   }
 });
 
+
 // Function to update user details
 exports.updateClientReport = catchAsyncErrors(async (req, res) => {
-  const { mobileNumber, package, customerRequirements, discounts, followUp, messageSend } = req.body;
+  //console.log(req.body)
+  let { mobileNumber, newCustomerRequirements, discounts, followUp, messageSend, package } = req.body;
+  mobileNumber = mobileNumber.replace(/\D/g, '');
+  let updatemobileNumber = mobileNumber; // Declare updatemobileNumber variable here
+
+  // Check if the mobile number starts with "+91", if not, prepend it
+  if (!mobileNumber.startsWith('91')) {
+    updatemobileNumber = '+91' + mobileNumber;
+    //console.log(updatemobileNumber);
+  }
 
   try {
     // Find the client by mobile number
-    const client = await Client.findOne({ mobileNumber });
+    const client = await Client.findOne({ mobileNumber: updatemobileNumber });
 
     if (!client) {
       return res.status(404).json({
@@ -152,8 +185,9 @@ exports.updateClientReport = catchAsyncErrors(async (req, res) => {
     if (package) {
       client.package = package;
     }
-    if (customerRequirements) {
-      client.customerRequirements = customerRequirements;
+    if (newCustomerRequirements && Array.isArray(newCustomerRequirements)) {
+      // Append new customer requirements to existing ones
+      client.customerRequirements = client.customerRequirements.concat(newCustomerRequirements);
     }
     if (discounts !== undefined) {
       client.discounts = discounts;
@@ -167,30 +201,8 @@ exports.updateClientReport = catchAsyncErrors(async (req, res) => {
 
     // Save the updated client details
     await client.save();
-    if (messageSend && package) {
-      switch (package.toLowerCase()) {
-        case 'export-plan':
-          pdfFileName = '../pdf/Expot Plan. (1)_compressed.pdf';
-          break;
-        case 'gold-membership':
-          pdfFileName = '../pdf/Gold membership.,-1_compressed.pdf';
-          break;
-        case 'startup':
-          pdfFileName = '../pdf/Startup Package Final_compressed.pdf';
-          break;
-        default:
-          pdfFileName = null;
-          break;
-      }
 
-      if (pdfFileName) {
-        const pdfPath = path.join(__dirname, '../pdf', pdfFileName);
-        packagePDF = fs.readFileSync(pdfPath);
-      }
-
-      // Send the email with the PDF attachment, passing 'package' as an argument
-      await sendPdfMail(client.email, pdfFileName, package, packagePDF);
-    }
+    // Send email with PDF attachment if necessary
 
     res.status(200).json({
       success: true,
@@ -206,14 +218,26 @@ exports.updateClientReport = catchAsyncErrors(async (req, res) => {
   }
 });
 
+
 //Function to get Client By Mobile Number
 
 exports.GetClientByMobileNumber = catchAsyncErrors(async (req, res) => {
   try {
-    const { mobileNumber } = req.body; // Correctly extract mobileNumber from the request body
+    let { mobileNumber } = req.body;
+    //console.log(mobileNumber)
+    // Remove any non-digit characters from the mobile number
+    mobileNumber = mobileNumber.replace(/\D/g, '');
+
+    let updatemobileNumber = mobileNumber; // Declare updatemobileNumber variable here
+
+    // Check if the mobile number starts with "+91", if not, prepend it
+    if (!mobileNumber.startsWith('91')) {
+      updatemobileNumber = '+91' + mobileNumber;
+      //console.log(updatemobileNumber)
+    }
 
     // Check if the mobile number is linked with any client
-    const client = await Client.findOne({ mobileNumber });
+    const client = await Client.findOne({ mobileNumber: updatemobileNumber });
 
     if (!client) {
       return res.status(404).json({
@@ -236,22 +260,109 @@ exports.GetClientByMobileNumber = catchAsyncErrors(async (req, res) => {
   }
 });
 
-//download all client info in excel file
-exports.downloadClientData = catchAsyncErrors(async(req,res)=>{
+exports.deleteClients = catchAsyncErrors(async (req, res) => {
+  try {
+    const clientId = req.params.id;
+    const deleteThisClient = await Client.findByIdAndDelete(clientId);
 
-try{
+    if (!deleteThisClient) {
+      return res.status(404).json({
+        success: false,
+        msg: 'Client not found'
+      });
+    }
 
-  const client = await Client.find({})
-  if(!client){
-    return res.status(404).json({
+    res.status(200).json({
+      success: true,
+      data: deleteThisClient
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
       success: false,
-      message: "No User Found",
+      msg: 'Internal Server Error'
     });
   }
+});
 
-  //if client find
-  const workBook = new ExcelJS.Workbook()
-  const workSheet = workBook.addWorksheet('Clients')
+exports.BlockClientById = catchAsyncErrors(async (req, res) => {
+  try {
+    const id = req.params.id;
+    const checkClient = await Client.findById(id);
+    if (!checkClient) {
+      return res.status(404).json({
+        status: false,
+        message: 'User Not Found'
+      });
+    }
+
+    // Check client status and update if necessary
+    if (checkClient.status === true) {
+      checkClient.status = false;
+      await checkClient.save(); // Save the updated client back to the database
+    }
+    else{
+      return res.status(402).json({
+        status: false,
+        message: ' client Already Block'
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Client status updated successfully'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: false,
+      message: 'Internal Server Error'
+    });
+  }
+});
+exports.ShowBlockClients = catchAsyncErrors(async (req, res) => {
+  try {
+    const submitById = req.params.id;
+    const blockClients = await Client.find({ submittedBy: submitById, status: false });
+
+    if (!blockClients || blockClients.length === 0) {
+      return res.status(404).json({
+        status: false,
+        message: 'No blocked clients found for the specified user ID'
+      });
+    }
+
+    res.status(200).json({
+      status: true,
+      data: blockClients
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: false,
+      message: 'Internal Server Error'
+    });
+  }
+});
+
+
+
+//download all client info in excel file
+exports.downloadClientData = catchAsyncErrors(async (req, res) => {
+
+  try {
+
+    const client = await Client.find({})
+    if (!client) {
+      return res.status(404).json({
+        success: false,
+        message: "No User Found",
+      });
+    }
+
+    //if client find
+    const workBook = new ExcelJS.Workbook()
+    const workSheet = workBook.addWorksheet('Clients')
 
     // Define the Excel columns and add a header row
     workSheet.columns = [
@@ -260,42 +371,42 @@ try{
       { header: 'Email', key: 'email', width: 25 },
       { header: 'Business Website Name', key: 'businessWebsiteName', width: 25 },
       { header: 'package', key: 'package', width: 25 },
-      { header: 'customer Requirements', key: 'customerRequirements', width:70 },
-      { header: 'Discounts in %', key: 'discounts', width:20 },
-      { header: 'followUp', key: 'followUp', width:20 },
-      { header: 'submittedBy', key: 'submittedBy', width:40 },
+      { header: 'customer Requirements', key: 'customerRequirements', width: 70 },
+      { header: 'Discounts in %', key: 'discounts', width: 20 },
+      { header: 'followUp', key: 'followUp', width: 20 },
+      { header: 'submittedBy', key: 'submittedBy', width: 40 },
     ];
-  // Populate the worksheet with client data
-  client.forEach((client) => {
-    workSheet.addRow({
-      name: client.name,
-      mobileNumber: client.mobileNumber,
-      email: client.email,
-      businessWebsiteName: client.businessWebsiteName,
-      package: client.package,
-      customerRequirements:client.customerRequirements,
-      discounts:client.discounts,
-      followUp : client.followUp ,
-      submittedBy: client.submittedBy
+    // Populate the worksheet with client data
+    client.forEach((client) => {
+      workSheet.addRow({
+        name: client.name,
+        mobileNumber: client.mobileNumber,
+        email: client.email,
+        businessWebsiteName: client.businessWebsiteName,
+        package: client.package,
+        customerRequirements: client.customerRequirements,
+        discounts: client.discounts,
+        followUp: client.followUp,
+        submittedBy: client.submittedBy
 
 
+      });
     });
-  });
 
-  // Set the response headers for Excel download
-  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-  res.setHeader('Content-Disposition', 'attachment; filename=Clients.xlsx');
+    // Set the response headers for Excel download
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=Clients.xlsx');
 
-  // Generate and send the Excel file
-  const buffer = await workBook.xlsx.writeBuffer();
-  res.send(buffer);
-} catch (error) {
-  console.error(error);
-  res.status(500).json({
-    success: false,
-    message: 'Internal Server Error',
-  });
-}
+    // Generate and send the Excel file
+    const buffer = await workBook.xlsx.writeBuffer();
+    res.send(buffer);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
 });
 
 // download attendece Sheet of Executives
@@ -376,3 +487,27 @@ exports.downloadAttendance = catchAsyncErrors(async (req, res) => {
     });
   }
 });
+
+exports.getClinetsByUserId = catchAsyncErrors(async (req, res) => {
+
+  try {
+    const user = req.user.id
+    //console.log(user)
+    const clients = await Client.find({ submittedBy: user })
+    if (clients.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No clients found for the given user ID.'
+      });
+    }
+    // Sending back a response  
+    res.status(200).json({
+      success: true,
+      data: clients
+    })
+  } catch (error) {
+    //console.log(error)
+  }
+
+
+})
