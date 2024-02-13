@@ -40,7 +40,7 @@ const sendPdfMail = async (email, pdfFileName, package, packagePDF) => {
 //function to create a client by executive
 exports.createClient = catchAsyncErrors(async (req, res) => {
   const userid = req.user.id
-  const name = req.user.username
+  const names = req.user.username
   //console.log(req.user.username)
   try {
     const {
@@ -67,7 +67,7 @@ exports.createClient = catchAsyncErrors(async (req, res) => {
       discounts,
       followUp,
       messageSend,
-      submittedByName:name,
+      submittedByName:names,
       submittedBy:userid,
       followUpDate
     });
