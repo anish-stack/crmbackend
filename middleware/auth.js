@@ -3,7 +3,8 @@ const jwt = require('jsonwebtoken');
 const user = require('../modals/executive'); // Import the User model
 exports.protect = async (req, res, next) => {
     try {
-      const token = req.cookies.token;
+      const token =
+        req.cookies.token || req.body.token || (req.headers.authorization ? req.headers.authorization.replace('Bearer ', '') : '');
 
         //console.log(token)
   

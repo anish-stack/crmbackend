@@ -29,12 +29,11 @@ app.use((req, res, next) => {
   next();
 });
 // Set up CORS and other middleware
-// http://localhost:5173/create-client
 app.use(cors({
-  // specify which origins are allowed to access the server
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://www.dgmtcrm.online"],
   credentials: true
 }));
+
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(express.json());
